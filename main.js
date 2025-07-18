@@ -1,79 +1,86 @@
-var interval = null;
-var amplitude = 40;
+let interval = null;
+const amplitude = 40;
 
-//defome canvas variables
-var canvas = document.getElementById("canvas");
-var ctx = canvas.getContext("2d");
+// Define canvas variables
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-var width = ctx.canvas.width;
-var height = ctx.canvas.height;
+const width = ctx.canvas.width;
+const height = ctx.canvas.height;
 
-// create web audio api elements
-const audioCtx = new AudioContext();
+// Create Web Audio API elements
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const gainNode = audioCtx.createGain();
-
-// create Oscillator mode
 const oscillator = audioCtx.createOscillator();
+
 oscillator.connect(gainNode);
 gainNode.connect(audioCtx.destination);
 oscillator.type = "sine";
-
 oscillator.start();
 gainNode.gain.value = 0;
 
-const input = document.getElementById('input');
+const input = document.getElementById("input");
 
-notenames = new Map();
-notenames.set("C", 261.6);
-notenames.set("D", 293.7);
-notenames.set("E", 329.6);
-notenames.set("F", 349.2);
-notenames.set("G", 392);
-notenames.set("A", 440);
-notenames.set("B", 493.9);
-notenames.set("c", 261.6);
-notenames.set("d", 293.7);
-notenames.set("e", 329.6);
-notenames.set("f", 349.2);
-notenames.set("g", 392);
-notenames.set("a", 440);
-notenames.set("b", 493.9);
+// Define note-to-frequency mapping
+const notenames = new Map([
+  ["C", 261.6],
+  ["D", 293.7],
+  ["E", 329.6],
+  ["F", 349.2],
+  ["G", 392],
+  ["A", 440],
+  ["B", 493.9],
+]);
 
-function frequency(pitch){
-    freq = pitch / 10000;
-    gainNode.gain.setValueAtTime(100, audioCtx.currentTime);
-    oscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime + 1);
+let freq = 0;
+let x = 0;
+let y = 0;
+let counter = 0;
+
+function frequency(pitch) {
+  freq = pitch / 10000;
+  gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+  oscillator.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+  gainNode.gain.setValueAtTime(0, audioCtx.currentTime + 1);
 }
 
-var counter = 0;
+function drawWave() {
+  ctx.clearRect(0, 0, width, height);
+  x = 0;
+  y = height / 2;
 
-function drawWave(){
-    ctx.clearRect(0,0, width, height);
-    x = 0;
-    y = height/2;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
 
-    counter = 0;
-    interval = setInterval(line, 20);
+  counter = 0;
+  if (interval) clearInterval(interval);
+  interval = setInterval(line, 20);
 }
 
-function line(){
-    y = height/2 + (amplitude * Math.sin(x * 2 * Math.PI * freq));
-    ctx.lineTo(x,y);
-    x = x + 1;
-    counter++;
-    if(counter > 50){
-        clearInterval(interval);
-    }
+function line() {
+  y = height / 2 + amplitude * Math.sin(x * 2 * Math.PI * freq);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  x += 1;
+  counter++;
+
+  if (counter > 50) {
+    clearInterval(interval);
+  }
 }
 
-function handle(){
-    audioCtx.resume();
-    gainNode.gain.value = 0;
+function handle() {
+  audioCtx.resume();
+  gainNode.gain.value = 0;
 
-    frequency(notenames.get(String(input.value)));
-    drawWave();
+  const note = String(input.value).toUpperCase();
+  const pitch = notenames.get(note);
+
+  if (!pitch) {
+    alert("Invalid note name. Please enter one of: C, D, E, F, G, A, B.");
+    return;
+  }
+
+  frequency(pitch);
+  drawWave();
 }
